@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tekken 8 — Fight Generator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--blue:#0077FF;--red:#FF2222;--gold:#FFD700;--dark:#060810;--panel:#0A0C18;--card:#0F1220;--border:#181C30;--text:#DCE8FF;--dim:#404870;}
+body{background:var(--dark);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 14px 72px;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 55% 30% at 15% 5%,rgba(0,119,255,0.08) 0%,transparent 65%),radial-gradient(ellipse 45% 25% at 85% 85%,rgba(255,34,34,0.06) 0%,transparent 65%);pointer-events:none;z-index:0;}
+.header{text-align:center;position:relative;z-index:1;margin-bottom:6px;}
+.title{font-family:'Orbitron',sans-serif;font-size:clamp(2rem,8vw,4rem);font-weight:900;letter-spacing:0.1em;color:var(--text);text-shadow:0 0 30px rgba(0,119,255,0.4);}
+.title span{color:var(--blue);}
+.subtitle{font-size:0.68rem;letter-spacing:0.22em;text-transform:uppercase;color:var(--dim);margin-top:5px;}
+.patch-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,119,255,0.1);border:1px solid rgba(0,119,255,0.3);border-radius:20px;padding:4px 12px;font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:#6699FF;margin-top:8px;}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 18px;width:100%;max-width:800px;position:relative;z-index:1;margin-top:22px;}
+.filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.pill{font-size:0.67rem;letter-spacing:0.1em;text-transform:uppercase;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:#080A14;color:var(--dim);cursor:pointer;transition:all 0.12s;}
+.pill:hover{border-color:var(--blue);color:var(--text);}
+.pill.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.pill.dlc.active{background:#9B30FF;border-color:#9B30FF;}
+.search-wrap{position:relative;margin-bottom:12px;}
+.hero-search{width:100%;background:#080A14;border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Inter',sans-serif;font-size:0.85rem;padding:9px 14px 9px 36px;outline:none;transition:border-color 0.15s;}
+.hero-search:focus{border-color:var(--blue);}
+.hero-search::placeholder{color:var(--dim);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:0.85rem;pointer-events:none;}
+.btn-wrap{display:flex;justify-content:center;margin-top:4px;}
+.btn-gen{font-family:'Orbitron',sans-serif;font-size:0.9rem;font-weight:700;letter-spacing:0.1em;background:linear-gradient(135deg,#0055CC,#0077FF);color:#fff;border:none;border-radius:8px;padding:13px 36px;cursor:pointer;transition:transform 0.12s,box-shadow 0.15s;}
+.btn-gen:hover{transform:scale(1.04);box-shadow:0 0 22px rgba(0,119,255,0.4);}
+.btn-gen:active{transform:scale(0.97);}
+#result{display:none;flex-direction:column;gap:14px;margin-top:20px;}
+.fight-row{display:grid;grid-template-columns:1fr 44px 1fr;align-items:center;}
+.fighter-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;}
+.fp-owner{font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--dim);}
+.fp-name{font-family:'Orbitron',sans-serif;font-size:clamp(0.9rem,3vw,1.3rem);font-weight:700;color:var(--text);line-height:1.2;}
+.fp-style{font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:rgba(0,119,255,0.12);color:#88AAFF;}
+.fp-badges{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:2px;}
+.badge{font-size:0.5rem;letter-spacing:0.08em;text-transform:uppercase;padding:1px 5px;border-radius:4px;font-weight:600;}
+.badge.dlc{background:rgba(155,48,255,0.2);color:#B060FF;}
+.badge.new{background:rgba(255,215,0,0.2);color:var(--gold);}
+.badge.beginner{background:rgba(100,200,100,0.15);color:#88DD88;}
+.badge.mishima{background:rgba(255,34,34,0.15);color:#FF8888;}
+.badge.guest{background:rgba(255,140,0,0.15);color:#FFAA44;}
+.vs-col{display:flex;align-items:center;justify-content:center;}
+.vs-badge{font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:900;color:var(--gold);text-shadow:0 0 10px rgba(255,215,0,0.4);}
+.scenario-box{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--blue);border-radius:10px;padding:16px 14px;}
+.scenario-label{font-size:0.6rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;font-weight:600;}
+.scenario-text{font-size:0.86rem;line-height:1.65;color:#8898CC;}
+.cursor{display:inline-block;width:2px;height:0.85em;background:var(--blue);margin-left:2px;vertical-align:text-bottom;animation:blink 0.7s steps(1) infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="title">TEKKEN <span>8</span></div>
+  <div class="subtitle">Fight Generator — Joe vs CPU</div>
+  <div class="patch-badge">🟢 Season 3 · June 2026 · 41 Characters</div>
+</div>
+<div class="card">
+  <div class="filter-row">
+    <div class="pill active" data-filter="all">All</div>
+    <div class="pill" data-filter="mishima">Mishima</div>
+    <div class="pill" data-filter="williams">Williams/Manji</div>
+    <div class="pill" data-filter="beginner">Beginner</div>
+    <div class="pill dlc" data-filter="dlc">DLC</div>
+    <div class="pill dlc" data-filter="guest">Guest</div>
+  </div>
+  <div class="search-wrap"><span class="search-icon">🔍</span><input class="hero-search" id="heroSearch" type="text" placeholder="Search fighters..." oninput="buildGrid()" autocomplete="off"></div>
+  <div class="btn-wrap">
+    <button class="btn-gen" id="genBtn">⚡ GENERATE FIGHT</button>
+  </div>
+  <div id="result">
+    <div class="fight-row">
+      <div class="fighter-panel">
+        <div class="fp-owner">Joe plays</div>
+        <div class="fp-name" id="nameJoe">—</div>
+        <div class="fp-style" id="styleJoe"></div>
+        <div class="fp-badges" id="badgesJoe"></div>
+      </div>
+      <div class="vs-col"><div class="vs-badge">VS</div></div>
+      <div class="fighter-panel">
+        <div class="fp-owner">CPU plays</div>
+        <div class="fp-name" id="nameCpu">—</div>
+        <div class="fp-style" id="styleCpu"></div>
+        <div class="fp-badges" id="badgesCpu"></div>
+      </div>
+    </div>
+    <div class="scenario-box">
+      <div class="scenario-label">🥊 Match Breakdown</div>
+      <div class="scenario-text" id="scenarioText"></div>
+    </div>
+  </div>
+</div>
+<script>
+const ALL = [
+  // Base roster 32
+  {n:"Jin Kazama",        style:"Karate / Devil",           tags:["mishima"]},
+  {n:"Kazuya Mishima",    style:"Mishima Karate",           tags:["mishima"]},
+  {n:"Paul Phoenix",      style:"Judo / Karate",            tags:["beginner"]},
+  {n:"Marshall Law",      style:"Martial Arts",             tags:["beginner"]},
+  {n:"King",              style:"Pro Wrestling",            tags:["beginner"]},
+  {n:"Nina Williams",     style:"Assassination Arts",       tags:[]},
+  {n:"Jack-8",            style:"Brute Force",              tags:["beginner"]},
+  {n:"Lars Alexandersson",style:"Tekken Forces Style",      tags:["beginner"]},
+  {n:"Xiaoyu",            style:"Phoenix / Panda Style",    tags:[]},
+  {n:"Asuka Kazama",      style:"Kazama Style Jujutsu",     tags:[]},
+  {n:"Leroy Smith",       style:"Wing Chun",                tags:[]},
+  {n:"Claudio",           style:"Sirius Style",             tags:[]},
+  {n:"Hwoarang",          style:"Taekwondo",                tags:[]},
+  {n:"Steve Fox",         style:"Boxing",                   tags:[]},
+  {n:"Jun Kazama",        style:"Kazama Style Jujutsu",     tags:["mishima"]},
+  {n:"Reina",             style:"Mishima Style / Taido",    tags:["mishima"]},
+  {n:"Victor Chevalier",  style:"French Martial Arts",      tags:[]},
+  {n:"Lili",              style:"Street Fighting",          tags:[]},
+  {n:"Shaheen",           style:"Saudi Military Martial Arts",tags:[]},
+  {n:"Kuma",              style:"Heihachi Style Bear Fighting",tags:[]},
+  {n:"Panda",             style:"Heihachi Style Bear Fighting",tags:[]},
+  {n:"Leo",               style:"Bajiquan",                 tags:[]},
+  {n:"Lee Chaolan",       style:"Martial Arts",             tags:[]},
+  {n:"Bryan Fury",        style:"Kickboxing / Snake Fighting",tags:[]},
+  {n:"Dragunov",          style:"Sambo",                    tags:[]},
+  {n:"Feng Wei",          style:"Chinese Martial Arts",     tags:[]},
+  {n:"Yoshimitsu",        style:"Manji Ninjutsu",           tags:["williams"]},
+  {n:"Raven",             style:"Ninjutsu",                 tags:[]},
+  {n:"Zafina",            style:"Ancient Assassination Arts",tags:[]},
+  {n:"Devil Jin",         style:"Mishima Karate / Devil",   tags:["mishima"]},
+  {n:"Azucena",           style:"Libre Fighting",           tags:[]},
+  {n:"Alisa",             style:"Mechanical Fighting Arts", tags:[]},
+  // Season 1 DLC
+  {n:"Eddy Gordo",        style:"Capoeira",                 tags:["dlc"]},
+  {n:"Lidia Sobieska",    style:"Polish Karate",            tags:["dlc"]},
+  {n:"Heihachi Mishima",  style:"Mishima Karate",           tags:["dlc","mishima"]},
+  {n:"Clive Rosfield",    style:"Royal Arms",               tags:["dlc","guest"]},
+  // Season 2 DLC
+  {n:"Anna Williams",     style:"Assassination Arts",       tags:["dlc","williams"]},
+  {n:"Fahkumram",         style:"Muay Thai",                tags:["dlc"]},
+  {n:"Armor King",        style:"Pro Wrestling",            tags:["dlc"]},
+  {n:"Miary Zo",          style:"Morengy / Dambe",          tags:["dlc"]},
+  // Season 3 DLC
+  {n:"Kunimitsu",         style:"Manji Ninjutsu / Tantojutsu",tags:["dlc","new","williams"]},
+];
+
+const SCENARIOS = [
+  "Iron First Tournament finals — two fighters who've been on a collision course the whole bracket. Both have beaten opponents who should have stopped them. The King of Iron Fist doesn't care about stories. It only cares about who walks out.",
+  "The Mishima Zaibatsu's shadow reaches everywhere, but this fight has nothing to do with them. Two fighters with their own reasons, their own grudges, their own unfinished business. The arena just happens to be where they ended up.",
+  "One fighter has been studying footage of the other for weeks. The other one doesn't even know who they are. Film study means nothing when the first exchange shatters the gameplan and both fighters have to improvise from round one.",
+  "Heat system is the great equalizer — one well-timed Heat Smash can turn a losing round into a dominant one. Both fighters know it. Both are waiting for the opening. The first one to commit and miss is going to regret it.",
+  "The Tekken Force issued a bounty. Both fighters are here to collect it. The problem is, the bounty is on each other. Someone gave both of them the same contract and neither one was told. First one to figure it out wins by default. Until then — fight.",
+  "A rematch that's been coming since their last tournament bracket. The result was controversial then. Someone wants to prove it wasn't a fluke. The other one wants to prove it wasn't luck. Different motivations, same arena, same stakes.",
+  "Devil Gene readings are off the charts in this sector. Neither fighter is the source. Something is using their conflict to feed. The longer this fight goes, the stronger it gets. Fastest finish wins — not just the round, but something larger neither of them fully understands.",
+];
+
+let activeFilter='all';
+document.querySelectorAll('.pill').forEach(p=>{p.addEventListener('click',()=>{document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));p.classList.add('active');activeFilter=p.dataset.filter;});});
+function getPool(){
+  const q=document.getElementById('heroSearch').value.toLowerCase().trim();
+  return ALL.filter(h=>{
+    if(q&&!h.n.toLowerCase().includes(q)) return false;
+    if(activeFilter==='all') return true;
+    return h.tags.includes(activeFilter);
+  });
+}
+function shuffle(arr){const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function typewrite(el,text,speed=16){el.innerHTML='';let i=0;const cur=document.createElement('span');cur.className='cursor';el.appendChild(cur);const tick=()=>{if(i<text.length){el.insertBefore(document.createTextNode(text[i++]),cur);setTimeout(tick,speed);}else{cur.remove();}};tick();}
+function renderFighter(f, nameId, styleId, badgesId){
+  document.getElementById(nameId).textContent=f.n;
+  document.getElementById(styleId).textContent=f.style;
+  document.getElementById(badgesId).innerHTML=f.tags.map(t=>`<span class="badge ${t}">${t}</span>`).join('');
+}
+document.getElementById('genBtn').addEventListener('click',()=>{
+  const pool=getPool();
+  if(pool.length<2){alert('Not enough fighters. Try All.');return;}
+  const s=shuffle(pool);
+  const f1=s[0],f2=s.find(c=>c.n!==f1.n);
+  if(!f2){alert('Need at least 2.');return;}
+  const [joe,cpu]=Math.random()<0.5?[f1,f2]:[f2,f1];
+  renderFighter(joe,'nameJoe','styleJoe','badgesJoe');
+  renderFighter(cpu,'nameCpu','styleCpu','badgesCpu');
+  document.getElementById('result').style.display='flex';
+  typewrite(document.getElementById('scenarioText'),SCENARIOS[Math.floor(Math.random()*SCENARIOS.length)]);
+});
+document.getElementById('heroSearch').addEventListener('input',()=>{});
+</script>
+</body>
+</html>
